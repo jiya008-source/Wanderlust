@@ -1,26 +1,36 @@
+require("dotenv").config({ path: "../.env" });
 const mongoose = require("mongoose");
 const initData = require("./data.js");
 const Listing = require("../models/listing.js");
+const User = require("../models/user.js");
 
-const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+const MONGO_URL = process.env.ATLAS_URL;
 
-main()
-  .then(() => {
-    console.log("connected to DB");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+main().catch((err) => console.log("❌ DB connection error:", err));
 
 async function main() {
   await mongoose.connect(MONGO_URL);
+  console.log("✅ Connected to MongoDB Atlas");
 }
 
 const initDB = async () => {
   await Listing.deleteMany({});
-  initData.data = initData.data.map((obj) => ({...obj, owner:"6531350a2543406980779aae"}));
-  await Listing.insertMany(initData.data);
-  console.log("data was initialized");
+  console.log("🧹 Deleted old listings");
+
+  const user = await User.findOne({ username: "jiya" });
+
+  if (!user) {
+    console.log("❌ User 'jiya' not found. Please register first.");
+    return;
+  }
+
+  const listingsWithOwner = initData.data.map((listing) => ({
+    ...listing,
+    owner: user._id,
+  }));
+
+  await Listing.insertMany(listingsWithOwner);
+  console.log(`✅ ${listingsWithOwner.length} listings seeded with owner: ${user.username}`);
 };
 
 initDB();

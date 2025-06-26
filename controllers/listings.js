@@ -27,18 +27,34 @@ module.exports.showListing = async (req, res) => {
     console.log(listing);
     res.render("listings/show.ejs", { listing });
 };
-
-
 module.exports.createListing = async (req, res, next) => {
-    let url = req.file.path;
-    let filename = req.file.filename;
+    try {
+      const newListing = new Listing(req.body.listing);
+      newListing.owner = req.user._id;
+  
+      if (req.file) {
+        newListing.image = {
+          url: req.file.path,
+          filename: req.file.filename,
+        };
+      } else {
+        // ✅ Set default image if no file was uploaded
+        newListing.image = {
+          url: "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fHRyYXZlbHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
+          filename: "default_image",
+        };
+      }
+  
+      await newListing.save();
+      req.flash("success", "New listing created!");
+      res.redirect(`/listings/${newListing._id}`);
+    } catch (err) {
+      console.log("Error creating listing:", err.message);
+      next(err);
+    }
+  };
+  
 
-    const newListing = new Listing( req.body.listing);
-    newListing.owner = req.user._id;
-    newListing.image = { url, filename };
-    await newListing.save();
-    res.redirect("/listings");
-};
 
 
 module.exports.renderEditForm = async (req, res ) => {
